@@ -35,7 +35,9 @@ function findAll(filtros = {}) {
         const sortField = filtros.sort.startsWith('-') ? filtros.sort.substring(1) : filtros.sort;
         const sortOrder = filtros.sort.startsWith('-') ? 'desc' : 'asc';
         
-        if (sortField === 'dataDeIncorporacao') {
+        const allowedSortFields = ['id', 'nome', 'dataDeIncorporacao', 'cargo'];
+
+        if (allowedSortFields.includes(sortField)) {
             query.orderBy(sortField, sortOrder);
         }
     }
