@@ -113,8 +113,12 @@ async function patchCaso(req, res) {
             }
         }
         
-        if (dadosParciais.status && !['aberto', 'solucionado'].includes(dadosParciais.status)) {
+        if (dadosParciais.status && !['aberto', 'solucionado'].includes(dadosParciais.status.toLowerCase())) {
             return errorHandler.sendInvalidParameterError(res, { status: "O campo 'status' pode ser somente 'aberto' ou 'solucionado'." });
+        }
+        
+        if (dadosParciais.status) {
+            dadosParciais.status = dadosParciais.status.toLowerCase();
         }
         
         const { id: idDoBody, ...dadosParaAtualizar } = dadosParciais;

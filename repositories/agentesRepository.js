@@ -9,9 +9,9 @@ const db = require('../db/db');
  * @returns {Promise<Array>} Uma promessa que resolve para um array de agentes.
  */
 function findAll(filtros = {}) {
-    // Define valores padrão para paginação
-    const page = parseInt(filtros.page, 10) || 1;
-    const pageSize = parseInt(filtros.pageSize, 10) || 10;
+    // Validação robusta para paginação
+    const page = Number.isInteger(+filtros.page) && +filtros.page > 0 ? +filtros.page : 1;
+    const pageSize = Number.isInteger(+filtros.pageSize) && +filtros.pageSize > 0 ? +filtros.pageSize : 10;
     const offset = (page - 1) * pageSize;
 
     let query = db('agentes').select('*');

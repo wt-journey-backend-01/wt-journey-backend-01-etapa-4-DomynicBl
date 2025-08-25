@@ -83,11 +83,17 @@ async function getAgenteById(req, res) {
 
 async function createAgente(req, res) {
     try {
-        const errors = validarDadosAgente(req.body);
-        if (Object.keys(errors).length > 0) return errorHandler.sendInvalidParameterError(res, errors);
+        // Verificação específica para o campo 'id' na criação
+        if ('id' in req.body) {
+            return errorHandler.sendInvalidParameterError(res, { id: "O campo 'id' não deve ser enviado ao criar um agente." });
+        }
 
-        const { id, ...dadosParaCriar } = req.body;
-        const novoAgente = await agentesRepository.create(dadosParaCriar);
+        const errors = validarDadosAgente(req.body);
+        if (Object.keys(errors).length > 0) {
+            return errorHandler.sendInvalidParameterError(res, errors);
+        }
+
+        const novoAgente = await agentesRepository.create(req.body);
         res.status(201).json(novoAgente);
     } catch (error) {
         errorHandler.sendInternalServerError(res, error);

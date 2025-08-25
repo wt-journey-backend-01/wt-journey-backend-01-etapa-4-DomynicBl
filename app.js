@@ -8,7 +8,7 @@ const path = require('path');
 
 const agentesRouter = require('./routes/agentesRoutes');
 const casosRouter = require('./routes/casosRoutes');
-const authRouter = require('./routes/authRoutes'); // <--- IMPORTAR
+const authRouter = require('./routes/authRoutes');
 
 const app = express();
 
@@ -21,9 +21,9 @@ app.use(express.json());
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Rotas da API
-app.use(authRouter); // <--- USAR
-app.use(agentesRouter);
-app.use(casosRouter);
+app.use('/auth', authRouter);
+app.use('/agentes', agentesRouter);
+app.use('/casos', casosRouter);
 
 // Middleware para tratamento de erros genéricos
 app.use((err, req, res, next) => {
