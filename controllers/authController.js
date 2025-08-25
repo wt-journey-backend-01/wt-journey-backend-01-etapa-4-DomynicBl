@@ -72,7 +72,7 @@ async function login(req, res) {
         );
 
         res.status(200).json({
-            acess_token: accessToken 
+            access_token: accessToken 
         });
 
     } catch (error) {
