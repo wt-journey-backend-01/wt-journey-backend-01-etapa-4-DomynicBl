@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
+const authMiddleware = require('../middlewares/authMiddleware');
 
 // Rotas de autenticação abertas
 router.post('/auth/register', authController.register);
@@ -10,5 +11,6 @@ router.post('/auth/logout', authController.logout);
 
 router.delete('/users/:id', authController.deleteUser);
 
+router.get('/usuarios/me', authMiddleware, authController.getMe);
 
 module.exports = router;

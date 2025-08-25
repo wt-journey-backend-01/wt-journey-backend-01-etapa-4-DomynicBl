@@ -5,7 +5,7 @@ const casosController = require('../controllers/casosController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
 // Aplica o middleware de autenticação a TODAS as rotas de casos
-router.use('/casos', authMiddleware);
+router.use(authMiddleware);
 
 router.get('/casos', casosController.getAllCasos);
 router.get('/casos/:id', casosController.getCasoById);

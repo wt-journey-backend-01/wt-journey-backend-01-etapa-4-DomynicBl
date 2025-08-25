@@ -67,12 +67,12 @@ async function login(req, res) {
 
         const accessToken = jwt.sign(
             payload, 
-            process.env.JWT_SECRET, 
+            process.env.JWT_SECRET,     
             { expiresIn: '1h' } // Token expira em 1 hora
         );
 
         res.status(200).json({
-            access_token: accessToken
+            acess_token: accessToken 
         });
 
     } catch (error) {
@@ -106,4 +106,22 @@ async function deleteUser(req, res) {
     }
 }
 
-module.exports = { register, login, logout, deleteUser };
+async function getMe(req, res) {
+    try {
+        // O ID do usuário vem do token, que o middleware já validou e adicionou em req.user
+        const usuario = await usuariosRepository.findById(req.user.id);
+        
+        if (!usuario) {
+            return errorHandler.sendNotFoundError(res, "Usuário autenticado não encontrado no banco de dados.");
+        }
+        
+        // Não retornar a senha na resposta
+        const { senha, ...userData } = usuario;
+        res.status(200).json(userData);
+
+    } catch (error) {
+        errorHandler.sendInternalServerError(res, error);
+    }
+}
+
+module.exports = { register, login, logout, deleteUser, getMe }

@@ -5,7 +5,7 @@ const agentesController = require('../controllers/agentesController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
 // Aplica o middleware de autenticação a TODAS as rotas de agentes
-router.use('/agentes', authMiddleware); 
+router.use(authMiddleware);
 
 router.get('/agentes', agentesController.getAllAgentes);
 router.get('/agentes/:id', agentesController.getAgenteById);
