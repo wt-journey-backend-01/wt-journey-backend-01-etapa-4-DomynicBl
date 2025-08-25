@@ -12,8 +12,13 @@ async function register(req, res) {
         const { nome, email, senha } = req.body;
 
         // Validações básicas
-        if (!nome || !email || !senha) {
-            return errorHandler.sendInvalidParameterError(res, { message: "Nome, email e senha são obrigatórios." });
+        const errors = {};
+        if (!nome) errors.nome = "Nome é obrigatório.";
+        if (!email) errors.email = "Email é obrigatório.";
+        if (!senha) errors.senha = "Senha é obrigatória.";
+
+        if (Object.keys(errors).length > 0) {
+            return errorHandler.sendInvalidParameterError(res, errors);
         }
         
         // Validação da senha forte
