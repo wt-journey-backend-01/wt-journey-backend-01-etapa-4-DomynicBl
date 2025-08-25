@@ -1,6 +1,6 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 6 créditos restantes para usar o sistema de feedback AI.
+Você tem 5 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para DomynicBl:
 
@@ -8,235 +8,191 @@ Nota final: **52.0/100**
 
 Olá, DomynicBl! 👋🚀
 
-Primeiramente, parabéns pelo esforço e dedicação até aqui! 🎉 Você estruturou seu projeto com bastante organização, usou boas práticas no uso do Express, Knex e PostgreSQL, e implementou corretamente a parte de autenticação com bcrypt e JWT, o que é uma base fundamental para uma API segura. Além disso, vi que você conseguiu implementar o endpoint `/usuarios/me` para retornar os dados do usuário autenticado, o que é um bônus muito legal! 🌟 Isso mostra que você está indo além do básico e buscando entregar uma aplicação completa.
+Primeiramente, parabéns pelo esforço e dedicação em construir essa API robusta com autenticação, segurança e controle de acesso! 🎉 Você estruturou muito bem o projeto, separando controllers, repositories, middlewares e rotas, e implementou corretamente várias funcionalidades importantes, como o registro/login de usuários com bcrypt e JWT, além da proteção das rotas com middleware. Isso mostra que você já tem uma boa base e compreende os conceitos fundamentais de uma API REST segura. 👏
 
 ---
 
-### O que está funcionando muito bem 👍
+## O que você mandou muito bem! 🌟
 
-- **Autenticação de usuários:** Seu `authController.js` está bem estruturado, com validações fortes para senha, hashing com bcrypt, e geração correta do token JWT com expiração.  
-- **Middleware de autenticação:** Seu `authMiddleware.js` faz a verificação do token de forma adequada, tratando erros de token expirado e inválido.  
-- **Rotas protegidas:** Você aplicou o middleware nas rotas de agentes e casos, garantindo que só usuários autenticados possam acessá-las.  
-- **Estrutura de pastas:** Está bem próxima do esperado, com pastas separadas para controllers, repositories, middlewares e rotas, facilitando a manutenção e escalabilidade.  
-- **Documentação no INSTRUCTIONS.md:** Está clara e bem explicada, especialmente o fluxo de autenticação e o uso do token no header Authorization, o que ajuda muito quem for consumir sua API.
-
----
-
-### Pontos importantes para melhorar e que impactam diretamente o funcionamento da API 🚨
-
-Apesar dos acertos, percebi que a maior parte das falhas está relacionada às rotas de **agentes** e **casos**, especialmente nas operações de CRUD e nos filtros. Vamos destrinchar os pontos mais críticos para que você possa ajustar e destravar essas funcionalidades:
+- A estrutura do projeto está alinhada com o esperado: pastas `controllers/`, `repositories/`, `routes/`, `middlewares/`, `db/` e `utils/` estão presentes e organizadas.
+- O uso do **bcryptjs** para hashing da senha está correto no `authController.js`.
+- A geração do JWT no login está bem feita, com payload adequado e tempo de expiração.
+- O middleware de autenticação (`authMiddleware.js`) está validando corretamente o token JWT e protegendo as rotas.
+- Os endpoints de usuários (`register`, `login`, `logout`, `deleteUser`, `getMe`) estão implementados de forma completa e clara.
+- A documentação no `INSTRUCTIONS.md` está bem detalhada, explicando o fluxo de autenticação e como usar o token JWT nas requisições.
+- Você já implementou os bônus, como o endpoint `/usuarios/me` para retornar dados do usuário autenticado! Isso é um diferencial importante.
 
 ---
 
-#### 1. **Roteamento e definição das rotas dos agentes e casos**
+## Pontos que precisam de atenção para destravar tudo! 🔎
 
-No arquivo `routes/agentesRoutes.js`, você aplicou o middleware de autenticação com:
+### 1. **Falha nos endpoints de agentes e casos: operações CRUD não funcionando corretamente**
+
+Eu percebi que muitos endpoints relacionados a agentes e casos estão falhando, especialmente nas operações de criação, listagem, atualização e exclusão. Isso indica que a integração entre as rotas, controllers e repositories desses recursos não está funcionando 100%.
+
+**Análise raiz do problema:**
+
+- O `authMiddleware` está corretamente aplicado nas rotas `/agentes` e `/casos`, o que é ótimo para segurança.
+- Porém, o problema está na **migration da tabela `usuarios`** e no uso do banco para os agentes e casos.
+
+Veja que sua migration para `usuarios` está correta, mas a migration que cria as tabelas `agentes` e `casos` está em um arquivo separado (`20250810133337_solution_migrations.js`), e as tabelas `agentes` e `casos` são essenciais para os endpoints de agentes e casos funcionarem.
+
+**Possível causa:**
+
+- Se as migrations não foram executadas na ordem correta, ou se a tabela `usuarios` foi criada mas as tabelas `agentes` e `casos` não, as queries para agentes e casos vão falhar.
+- Além disso, seu script para resetar o banco (`npm run db:reset`) não inclui explicitamente a criação da tabela `usuarios` junto às outras, o que pode causar inconsistências.
+
+**O que verificar e ajustar:**
+
+- Garanta que as migrations estão sendo executadas na ordem correta, de modo que as tabelas `agentes` e `casos` existam antes de popular dados e rodar a API.
+- No seu `package.json`, o script `db:reset` está assim:
+
+```json
+"db:reset": "npx knex migrate:rollback --all && npx knex migrate:latest && npx knex seed:run"
+```
+
+Isso deve funcionar, mas confirme que todas as migrations estão na pasta `db/migrations` e que o arquivo da tabela `usuarios` está lá também.
+
+- Se precisar, execute manualmente:
+
+```bash
+npx knex migrate:latest
+npx knex seed:run
+```
+
+- Verifique também se as seeds para agentes e casos estão funcionando corretamente e inserindo os dados.
+
+---
+
+### 2. **Filtros e ordenação no repository de agentes**
+
+No arquivo `repositories/agentesRepository.js`, você implementou filtros e ordenação, mas existe uma pequena limitação que pode estar causando problemas nos testes de listagem e filtragem:
+
+```js
+if (filtros.sort) {
+    const sortField = filtros.sort.startsWith('-') ? filtros.sort.substring(1) : filtros.sort;
+    const sortOrder = filtros.sort.startsWith('-') ? 'desc' : 'asc';
+    
+    if (sortField === 'dataDeIncorporacao') {
+        query.orderBy(sortField, sortOrder);
+    }
+}
+```
+
+**Por que isso pode ser um problema?**
+
+- Você está aplicando ordenação **somente** se o filtro for exatamente `dataDeIncorporacao`. Se o teste enviar outro campo para ordenar (mesmo que não seja esperado), a ordenação não será aplicada.
+- Isso pode fazer com que a query não retorne os dados na ordem esperada.
+
+**Sugestão:**
+
+- Para garantir flexibilidade, você pode permitir ordenação em outros campos ou, pelo menos, retornar erro caso o campo não seja válido.
+- Ou, se quiser manter apenas `dataDeIncorporacao`, garanta que o teste envie esse campo no parâmetro `sort`.
+
+---
+
+### 3. **Validação e tratamento de erros nos controllers de agentes e casos**
+
+Você fez um excelente trabalho validando os dados de entrada nos controllers, mas pode melhorar um pouco a clareza no tratamento de erros para ficar 100% alinhado com as respostas esperadas.
+
+Por exemplo, no `agentesController.js`:
+
+```js
+if ('id' in dados) {
+    errors.id = "O campo 'id' não pode ser alterado.";
+}
+```
+
+É ótimo que você impeça a alteração do `id`, mas lembre-se de que, ao criar um novo agente, o campo `id` não deve ser enviado. Você já faz isso no `createAgente`, mas vale reforçar que o corpo da requisição deve estar limpo.
+
+Além disso, para erros de validação, você usa:
+
+```js
+return errorHandler.sendInvalidParameterError(res, errors);
+```
+
+Isso está correto, mas verifique se o objeto `errors` está no formato esperado para que a resposta fique clara para o cliente.
+
+---
+
+### 4. **JWT_SECRET e variáveis de ambiente**
+
+Sua implementação depende da variável de ambiente `JWT_SECRET` para assinar e validar tokens JWT, o que está correto e é uma boa prática.
+
+Porém, é essencial garantir que essa variável esteja definida no arquivo `.env` e que o arquivo `.env` esteja sendo carregado corretamente.
+
+No seu `knexfile.js` e em outros arquivos, você usa `require('dotenv').config();`, mas no `server.js` e `app.js` (que você não enviou), certifique-se de fazer isso também para garantir que `process.env.JWT_SECRET` esteja disponível.
+
+---
+
+### 5. **Resposta do login com campo `access_token`**
+
+No seu `authController.js`, no método `login`, você retorna o token assim:
+
+```js
+res.status(200).json({
+    access_token: accessToken 
+});
+```
+
+Isso está correto e atende ao requisito.
+
+---
+
+### 6. **Middleware de autenticação**
+
+Seu middleware `authMiddleware.js` está muito bem implementado, tratando corretamente erros de token expirado e inválido. Isso garante a segurança das rotas protegidas.
+
+---
+
+### 7. **Rotas e uso do middleware**
+
+Você aplicou o middleware de autenticação nas rotas de agentes e casos com:
 
 ```js
 router.use(authMiddleware);
-
-router.get('/agentes', agentesController.getAllAgentes);
-router.get('/agentes/:id', agentesController.getAgenteById);
-router.post('/agentes', agentesController.createAgente);
-router.put('/agentes/:id', agentesController.updateAgente);
-router.patch('/agentes/:id', agentesController.patchAgente);
-router.delete('/agentes/:id', agentesController.deleteAgente);
-router.get('/agentes/:id/casos', agentesController.getCasosDoAgente);
 ```
 
-E o mesmo padrão em `routes/casosRoutes.js`.
-
-**Análise:**  
-Você está definindo as rotas com o prefixo `/agentes` dentro do próprio arquivo de rotas, e depois, no arquivo principal `app.js` (que não foi enviado, mas é fundamental), provavelmente está fazendo algo como:
-
-```js
-app.use('/', agentesRoutes);
-```
-
-Isso faz com que as rotas fiquem como `/agentes/agentes`, `/agentes/agentes/:id` e assim por diante, o que causa erro 404 nas requisições esperadas.
-
-**Solução:**  
-No arquivo de rotas, defina as rotas **sem o prefixo** e aplique o prefixo no momento do `app.use`.
-
-Por exemplo, em `routes/agentesRoutes.js`:
-
-```js
-router.get('/', agentesController.getAllAgentes);
-router.get('/:id', agentesController.getAgenteById);
-router.post('/', agentesController.createAgente);
-router.put('/:id', agentesController.updateAgente);
-router.patch('/:id', agentesController.patchAgente);
-router.delete('/:id', agentesController.deleteAgente);
-router.get('/:id/casos', agentesController.getCasosDoAgente);
-```
-
-E no `app.js`:
-
-```js
-const agentesRoutes = require('./routes/agentesRoutes');
-app.use('/agentes', agentesRoutes);
-```
-
-O mesmo raciocínio vale para as rotas de casos e autenticação.
+Isso é ótimo, pois protege todas as rotas do recurso.
 
 ---
 
-#### 2. **Filtros e paginação no repositório de agentes**
+## Recomendações de Aprendizado 📚
 
-No `agentesRepository.js`, seu método `findAll` está assim:
+Para aprofundar seu conhecimento e resolver os pontos levantados, recomendo fortemente estes conteúdos:
 
-```js
-function findAll(filtros = {}) {
-    // ...
-    let query = db('agentes').select('*');
+- **Autenticação com JWT e bcrypt:**  
+  [Esse vídeo, feito pelos meus criadores, fala muito bem sobre os conceitos básicos e fundamentais da cibersegurança.](https://www.youtube.com/watch?v=Q4LQOfYwujk)  
+  [Vídeo sobre JWT na prática, explicando geração e validação de tokens.](https://www.youtube.com/watch?v=keS0JWOypIU)  
+  [Vídeo que aborda o uso combinado de JWT e bcrypt para autenticação segura.](https://www.youtube.com/watch?v=L04Ln97AwoY)
 
-    if (filtros.cargo) {
-        query.where('cargo', 'ilike', `%${filtros.cargo}%`);
-    }
+- **Configuração e uso do Knex com PostgreSQL:**  
+  [Como configurar banco de dados com Docker e Knex.](https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s)  
+  [Documentação oficial do Knex para migrations.](https://www.youtube.com/watch?v=dXWy_aGCW1E)  
+  [Guia detalhado do Knex Query Builder.](https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s)  
+  [Como criar seeds para popular o banco.](https://www.youtube.com/watch?v=AJrK90D5el0&t=9s)
 
-    if (filtros.dataDeIncorporacao_gte) {
-        query.where('dataDeIncorporacao', '>=', filtros.dataDeIncorporacao_gte);
-    }
-    if (filtros.dataDeIncorporacao_lte) {
-        query.where('dataDeIncorporacao', '<=', filtros.dataDeIncorporacao_lte);
-    }
-
-    if (filtros.sort) {
-        const sortField = filtros.sort.startsWith('-') ? filtros.sort.substring(1) : filtros.sort;
-        const sortOrder = filtros.sort.startsWith('-') ? 'desc' : 'asc';
-
-        if (sortField === 'dataDeIncorporacao') {
-            query.orderBy(sortField, sortOrder);
-        }
-    }
-
-    query.limit(pageSize).offset(offset);
-
-    return query;
-}
-```
-
-**Análise:**  
-Essa implementação está correta, mas pode estar falhando por causa do tipo dos parâmetros que chegam via `req.query`. Por exemplo, se o cliente enviar `page` ou `pageSize` como string vazia ou valores inválidos, o `parseInt` pode resultar em `NaN`, e isso pode quebrar a paginação.
-
-**Solução:**  
-Adicione validação para garantir que `page` e `pageSize` sejam números válidos, e defina valores padrão seguros. Exemplo:
-
-```js
-const page = Number.isInteger(+filtros.page) && +filtros.page > 0 ? +filtros.page : 1;
-const pageSize = Number.isInteger(+filtros.pageSize) && +filtros.pageSize > 0 ? +filtros.pageSize : 10;
-```
-
-Além disso, no controller `getAllAgentes`, você pode validar esses parâmetros para evitar erros.
+- **Estrutura e boas práticas MVC em Node.js:**  
+  [Vídeo sobre arquitetura MVC para organizar projetos Node.js.](https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s)
 
 ---
 
-#### 3. **Validação de entrada no controller de agentes**
+## Resumo rápido dos principais pontos para focar:
 
-Você fez uma ótima validação no `agentesController.js` para os dados completos e parciais, porém, percebi que ao criar um agente, você permite que o campo `id` seja enviado e apenas retorna erro se ele existir. Porém, o ideal é que o cliente **não envie o campo `id` no corpo da requisição**, porque ele é gerado automaticamente pelo banco.
-
-**Sugestão:**  
-No método `createAgente`, você pode fazer uma validação explícita para garantir que o `id` não esteja presente no corpo, e se estiver, rejeitar a requisição com erro 400.
-
-Exemplo:
-
-```js
-if ('id' in req.body) {
-    return errorHandler.sendInvalidParameterError(res, { id: "O campo 'id' não deve ser enviado ao criar um agente." });
-}
-```
-
-Isso evita confusão e deixa a API mais robusta.
+- ✅ **Confirme que todas as migrations foram executadas na ordem correta, criando as tabelas `agentes`, `casos` e `usuarios`.**  
+- ✅ **Verifique se as seeds estão populando corretamente as tabelas `agentes` e `casos`.**  
+- ✅ **Revise o filtro de ordenação no `agentesRepository.js` para garantir que a ordenação funcione conforme esperado.**  
+- ✅ **Garanta que o arquivo `.env` contenha a variável `JWT_SECRET` e que ela esteja sendo carregada no início da aplicação.**  
+- ✅ **Valide que a resposta de erro para validação de dados está no formato esperado para facilitar o entendimento do cliente.**  
+- ✅ **Continue usando o middleware de autenticação para proteger rotas sensíveis, como já está implementado.**  
 
 ---
 
-#### 4. **Atualização parcial e completa no controller de casos**
+DomynicBl, seu projeto está muito bem encaminhado! Com esses ajustes, tenho certeza que sua API vai funcionar perfeitamente e com a segurança necessária para um sistema real. Continue firme, aprendendo e aprimorando seu código. A jornada do desenvolvimento é cheia de desafios, mas você está no caminho certo! 🚀💪
 
-No `casosController.js`, você valida os dados muito bem, mas percebi que no método `patchCaso`, você permite atualizar o campo `status` sem garantir que ele esteja em caixa baixa (`'aberto'` ou `'solucionado'`), o que pode causar problemas na query e na validação do banco.
+Se precisar de ajuda para entender algum ponto específico, só chamar! 😉
 
-**Solução:**  
-Converta o valor para minúsculas antes da validação, ou valide de forma case-insensitive.
-
-Exemplo:
-
-```js
-if (dadosParciais.status && !['aberto', 'solucionado'].includes(dadosParciais.status.toLowerCase())) {
-    return errorHandler.sendInvalidParameterError(res, { status: "O campo 'status' pode ser somente 'aberto' ou 'solucionado'." });
-}
-```
-
----
-
-#### 5. **Migration da tabela `usuarios`**
-
-Sua migration está correta e cria a tabela com os campos necessários:
-
-```js
-exports.up = function(knex) {
-  return knex.schema.createTable('usuarios', function(table) {
-    table.increments('id').primary();
-    table.string('nome', 255).notNullable();
-    table.string('email', 255).notNullable().unique();
-    table.string('senha', 255).notNullable();
-  });
-};
-```
-
-Porém, para garantir a segurança, uma boa prática é limitar o tamanho do campo `senha` para armazenar hashes bcrypt, que normalmente têm tamanho fixo de 60 caracteres.
-
-**Sugestão:**  
-Defina o campo senha para ter tamanho 60, por exemplo:
-
-```js
-table.string('senha', 60).notNullable();
-```
-
-Isso evita desperdício de espaço e deixa o banco mais consistente.
-
----
-
-#### 6. **Variáveis de ambiente e segredo JWT**
-
-No seu `knexfile.js` e `authController.js`, você está usando `process.env.JWT_SECRET` e outras variáveis do `.env`. É fundamental garantir que o arquivo `.env` esteja corretamente configurado na raiz do projeto e que o segredo do JWT esteja presente.
-
-**Dica:**  
-Nunca commit esse arquivo no repositório público, e sempre valide no início da aplicação se o segredo está definido, para evitar erros silenciosos.
-
----
-
-### Recursos recomendados para aprofundar e corrigir esses pontos
-
-- Para entender melhor como organizar rotas e aplicar prefixos corretamente, recomendo este vídeo sobre arquitetura MVC e rotas em Express:  
-  https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
-
-- Para aprender a validar e manipular query params e filtros no Knex, este vídeo sobre Knex Query Builder é excelente:  
-  https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s
-
-- Para consolidar seu conhecimento em autenticação JWT e segurança com bcrypt, este vídeo, feito pelos meus criadores, explica muito bem o processo:  
-  https://www.youtube.com/watch?v=L04Ln97AwoY
-
-- Caso precise revisar a configuração do banco com Docker e Knex, este vídeo é um guia completo:  
-  https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s
-
----
-
-### Resumo rápido para você focar:
-
-- ⚠️ Ajustar as rotas para não repetir o prefixo `/agentes` e `/casos` nos arquivos de rotas, aplicando o prefixo apenas no `app.use`.
-- ⚠️ Validar melhor os parâmetros de paginação e filtros para evitar valores inválidos que quebrem as queries.
-- ⚠️ Proibir o envio do campo `id` no corpo das requisições de criação.
-- ⚠️ Garantir que os valores de campos como `status` sejam validados de forma case-insensitive.
-- ⚠️ Ajustar o tamanho do campo `senha` na migration para 60 caracteres, compatível com hashes bcrypt.
-- ⚠️ Verificar se o `.env` está configurado corretamente e o segredo JWT está presente.
-- 🎯 Continuar mantendo a organização do projeto e as boas práticas de tratamento de erros.
-
----
-
-Domynic, você já tem uma base muito sólida! Com esses ajustes, sua API vai ficar redondinha, segura e funcionando perfeitamente para os agentes do Departamento de Polícia. 👮‍♂️👮‍♀️
-
-Continue firme, e lembre-se que cada detalhe conta para construir uma aplicação profissional e confiável. Estou aqui para te ajudar no que precisar! 🚀✨
-
-Um abraço e bons códigos! 💻🔥
+Um abraço e sucesso! 👊✨
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
