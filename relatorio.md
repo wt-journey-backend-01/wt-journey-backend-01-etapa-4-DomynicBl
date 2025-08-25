@@ -1,263 +1,195 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 9 créditos restantes para usar o sistema de feedback AI.
+Você tem 8 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para DomynicBl:
 
 Nota final: **52.0/100**
 
-Olá, DomynicBl! 👋🚀
+```markdown
+# Olá, DomynicBl! 👋🚀
 
-Primeiramente, parabéns pelo esforço e dedicação em construir essa API complexa e cheia de funcionalidades importantes para o Departamento de Polícia! 🎉 Você conseguiu implementar a parte de autenticação com JWT, hashing de senha com bcrypt e até a exclusão de usuários, o que já é um baita avanço! Além disso, seu middleware de autenticação está bem estruturado para proteger as rotas sensíveis. Isso mostra que você entendeu muito bem os conceitos básicos de segurança e organização do seu backend. 👏
-
----
-
-## O que você mandou bem! 🌟
-
-- **Autenticação e segurança:** Seu `authController.js` está muito bom! Você validou a senha com regex para garantir uma senha forte, fez hash com bcrypt, gerou JWT com expiração e protegeu as rotas com middleware. Isso é essencial para uma API segura.
-- **Middleware de autenticação:** O `authMiddleware.js` está correto ao verificar o token no header `Authorization` e passar os dados do usuário autenticado para os controllers.
-- **Estrutura do projeto:** Você organizou as pastas e arquivos conforme o esperado, incluindo os novos arquivos para autenticação (`authRoutes.js`, `authController.js`, `usuariosRepository.js`, `authMiddleware.js`). Isso facilita a manutenção e escalabilidade.
-- **Documentação:** O `INSTRUCTIONS.md` está bem detalhado, explicando o fluxo de autenticação e o uso do token JWT nos headers.
-- **Tratamento de erros:** O uso do `errorHandler.js` para enviar respostas padronizadas é uma boa prática que você aplicou em todos os controllers.
+Primeiramente, parabéns pelo esforço e dedicação até aqui! 🎉 Você já fez um excelente trabalho ao implementar a autenticação com JWT, o hashing seguro das senhas usando bcryptjs, e a estrutura geral da sua API está muito bem organizada. Além disso, você garantiu que rotas sensíveis estejam protegidas com middleware, e até implementou o endpoint `/usuarios/me`, que é um bônus super valioso! Isso mostra que você está indo além do básico e buscando entregar uma aplicação profissional e segura. 👏✨
 
 ---
 
-## Pontos que precisam de atenção para destravar tudo! 🔍
+## O que está funcionando muito bem 👍
 
-### 1. **Proteção das rotas com middleware no arquivo de rotas**
-
-No arquivo `routes/agentesRoutes.js` e `routes/casosRoutes.js`, você fez algo assim:
-
-```js
-// agentesRoutes.js
-router.use('/agentes', authMiddleware); 
-
-router.get('/agentes', agentesController.getAllAgentes);
-router.get('/agentes/:id', agentesController.getAgenteById);
-// ...
-```
-
-E no `casosRoutes.js`:
-
-```js
-router.use('/casos', authMiddleware);
-
-router.get('/casos', casosController.getAllCasos);
-router.get('/casos/:id', casosController.getCasoById);
-// ...
-```
-
-**O problema aqui é que o `router` já está configurado para a rota raiz `/` do recurso, ou seja, as rotas definidas são relativas a essa raiz.** Quando você usa `router.use('/agentes', authMiddleware)`, está tentando proteger uma rota `/agentes/agentes`, que não existe.
-
-Se você está montando as rotas assim:
-
-```js
-const router = express.Router();
-
-router.get('/agentes', ...);
-```
-
-E depois no `app.js` você faz:
-
-```js
-app.use('/', agentesRoutes);
-```
-
-Então a rota final é `/agentes`.
-
-Por isso, para proteger todas as rotas de agentes, você deve aplicar o middleware diretamente no `router` sem o prefixo, assim:
-
-```js
-router.use(authMiddleware);
-```
-
-Ou, ainda melhor, aplicar o middleware em cada rota explicitamente, por exemplo:
-
-```js
-router.get('/agentes', authMiddleware, agentesController.getAllAgentes);
-```
-
-**Solução recomendada no seu caso:**
-
-```js
-// agentesRoutes.js
-const express = require('express');
-const router = express.Router();
-const agentesController = require('../controllers/agentesController');
-const authMiddleware = require('../middlewares/authMiddleware');
-
-// Aplica o middleware a todas as rotas do router
-router.use(authMiddleware);
-
-router.get('/agentes', agentesController.getAllAgentes);
-router.get('/agentes/:id', agentesController.getAgenteById);
-router.post('/agentes', agentesController.createAgente);
-router.put('/agentes/:id', agentesController.updateAgente);
-router.patch('/agentes/:id', agentesController.patchAgente);
-router.delete('/agentes/:id', agentesController.deleteAgente);
-router.get('/agentes/:id/casos', agentesController.getCasosDoAgente);
-
-module.exports = router;
-```
-
-Mesma coisa para `casosRoutes.js`.
+- **Autenticação de usuários:** Seu `authController.js` está muito bem estruturado, com validação de senha forte, hash seguro com bcryptjs, e geração correta do token JWT com expiração.  
+- **Middleware de autenticação:** O `authMiddleware.js` está implementado corretamente, validando o token e adicionando os dados do usuário em `req.user`, protegendo as rotas de agentes e casos.  
+- **Estrutura do projeto:** Você seguiu a arquitetura MVC com controllers, repositories, rotas e middlewares bem separados, o que é fundamental para escalabilidade e manutenção.  
+- **Documentação no INSTRUCTIONS.md:** O fluxo de autenticação está bem explicado, com exemplos claros de uso do token JWT no header Authorization.  
+- **Endpoints de usuário:** Registro, login, logout, exclusão e `/usuarios/me` estão funcionando e com tratamento correto de erros.  
+- **Validação robusta:** Os validadores nos controllers de agentes e casos são detalhados e ajudam a garantir integridade dos dados.  
 
 ---
 
-### 2. **Configuração do app.js e uso das rotas**
+## Pontos que precisam de atenção para destravar seu projeto 🔍
 
-Você mandou o `server.js` que importa o `app` de outro arquivo, mas o código do `app.js` não foi enviado. É importante garantir que no `app.js` você está fazendo algo assim:
+### 1. **Testes e operações com agentes e casos falhando**
+
+Percebi que os endpoints relacionados a **agentes** e **casos** estão apresentando problemas em várias operações: criação, listagem, busca por ID, atualização (PUT e PATCH) e exclusão. Isso indica que a comunicação com o banco de dados para esses recursos não está ocorrendo como esperado.
+
+---
+
+### Análise raiz do problema: **Tabela `usuarios` e migrações**
+
+Você implementou a migration para criar a tabela `usuarios` corretamente, mas ao analisar suas migrations para `agentes` e `casos`, notei que:
+
+- As migrations de `agentes` e `casos` estão no arquivo `20250810133337_solution_migrations.js`.
+- A migration de `usuarios` está separada em `20250824222406_create_usuarios_table.js`.
+- Porém, no seu `package.json`, o script de reset do banco executa rollback e `migrate:latest` — isso pressupõe que as migrations sejam aplicadas na ordem correta.
+
+**O que pode estar acontecendo:**  
+Se as migrations não foram executadas na ordem correta, ou se o banco não está atualizado com a tabela `usuarios`, pode causar falhas nas operações relacionadas a usuários, e possivelmente interferir na autenticação e no acesso aos agentes e casos.
+
+---
+
+### 2. **Falta de associação do arquivo `app.js` no `server.js`**
+
+Seu `server.js` importa o `app` do arquivo `./app`, mas você não enviou o código do `app.js`. Isso é importante porque:
+
+- O arquivo `app.js` geralmente é onde as rotas são montadas (ex: `app.use('/agentes', agentesRoutes)`).
+- Se as rotas não estiverem registradas corretamente, as requisições para agentes e casos não funcionarão.
+
+**Verifique se no `app.js` você está incluindo as rotas de agentes, casos e autenticação corretamente, algo como:**
 
 ```js
 const express = require('express');
 const app = express();
+
 const agentesRoutes = require('./routes/agentesRoutes');
 const casosRoutes = require('./routes/casosRoutes');
 const authRoutes = require('./routes/authRoutes');
 
 app.use(express.json());
 
-// Monta as rotas no caminho correto
-app.use('/', authRoutes);
-app.use('/', agentesRoutes);
-app.use('/', casosRoutes);
+app.use(agentesRoutes);
+app.use(casosRoutes);
+app.use(authRoutes);
 
 module.exports = app;
 ```
 
-Ou, se preferir, pode usar prefixos, mas aí as rotas dentro dos routers não devem repetir o prefixo.
-
-Essa organização é crucial para que as rotas sejam encontradas corretamente e para que o middleware funcione como esperado.
+Se as rotas não estiverem registradas, as requisições para `/agentes` e `/casos` não serão reconhecidas, causando falhas.
 
 ---
 
-### 3. **Tabela de usuários e migrations**
+### 3. **Validação de payload e erros 400**
 
-Sua migration para criação da tabela `usuarios` está correta, mas não vi seed para popular essa tabela. Embora não seja obrigatório, um seed ajuda a testar a autenticação mais facilmente.
+Os erros 400 ao criar ou atualizar agentes e casos indicam que o validador está detectando payloads incorretos. Isso pode acontecer se:
 
-Além disso, na migration você não adicionou restrições para a senha (como tamanho máximo), o que não é obrigatório, mas pode ajudar a evitar problemas.
+- Campos obrigatórios estiverem faltando.
+- Campos extras estiverem sendo enviados.
+- O formato dos dados estiver errado.
 
----
+Seu validador está bem completo, mas é importante garantir que o cliente envie exatamente os campos esperados e que o corpo da requisição seja JSON válido.
 
-### 4. **Validação de campos extras no registro**
-
-No `authController.js`, você valida os campos `nome`, `email` e `senha`, mas não há validação para campos extras indesejados no corpo da requisição. Isso pode causar problemas de segurança ou inconsistência.
-
-Você pode melhorar isso validando estritamente os campos esperados, por exemplo:
+Exemplo de validação no `agentesController.js`:
 
 ```js
-const allowedFields = ['nome', 'email', 'senha'];
-const extraFields = Object.keys(req.body).filter(field => !allowedFields.includes(field));
-if (extraFields.length > 0) {
-    return errorHandler.sendInvalidParameterError(res, { message: `Campos extras não permitidos: ${extraFields.join(', ')}` });
-}
+if (Object.keys(errors).length > 0) 
+  return errorHandler.sendInvalidParameterError(res, errors);
 ```
+
+**Dica:** Para facilitar o debug, você pode adicionar logs temporários para imprimir o corpo recebido, assim fica mais fácil identificar o que está chegando errado.
 
 ---
 
-### 5. **Resposta do login e nomenclatura do token**
+### 4. **Filtros e paginação em agentes e casos**
 
-No seu `authController.js` você retorna o token assim:
+Você implementou filtros para agentes (cargo, dataDeIncorporacao, sort) e para casos (status, agente_id, busca por texto). A lógica está correta, mas é importante garantir que:
+
+- Os parâmetros de query estejam sendo recebidos corretamente.
+- Os valores de paginação (`page`, `pageSize`) sejam números válidos.
+- O sort esteja funcionando com os campos corretos.
+
+Por exemplo, no `agentesRepository.js`:
+
+```js
+const page = parseInt(filtros.page, 10) || 1;
+const pageSize = parseInt(filtros.pageSize, 10) || 10;
+```
+
+Se algum desses valores estiver vindo como string vazia ou inválida, pode causar problemas.
+
+---
+
+### 5. **Middleware aplicado corretamente nas rotas**
+
+Você aplicou o middleware de autenticação em todas as rotas de agentes e casos com:
+
+```js
+router.use(authMiddleware);
+```
+
+Isso está correto e garante segurança. Só reforço que o token JWT deve ser enviado no header `Authorization` com o prefixo `Bearer `, conforme você documentou.
+
+---
+
+### 6. **Pequena inconsistência no nome do campo do token**
+
+No `authController.js`, o token JWT é retornado com a chave `acess_token` (com "c" a menos):
 
 ```js
 res.status(200).json({
-    access_token: accessToken
+    acess_token: accessToken 
 });
 ```
 
-Está correto, mas no enunciado do desafio a chave esperada é **`acess_token`** (com "c" só, em português). Essa diferença pode causar falha em sistemas que esperam a chave exatamente como descrita.
+O correto e mais comum é `access_token` (com dois "c"). Isso pode causar confusão na hora de consumir o token no frontend ou nos testes.
 
-Você pode ajustar para:
+**Sugestão de correção:**
 
 ```js
 res.status(200).json({
-    acess_token: accessToken
+    access_token: accessToken 
 });
 ```
 
 ---
 
-### 6. **Middleware de autenticação e mensagem de erro**
+## Recomendações de Aprendizado 📚
 
-Seu middleware `authMiddleware.js` está muito bom, mas a mensagem de erro para token inválido é genérica. Você pode manter assim, mas lembre-se que para testes e produção, mensagens genéricas são recomendadas para não vazar informações.
+Para te ajudar a resolver esses pontos, recomendo fortemente os seguintes vídeos, que são feitos pelos meus criadores e explicam com clareza os conceitos que você está aplicando:
 
----
+- Sobre **Autenticação JWT e BCrypt** (para reforçar a segurança e o fluxo de login/logout):  
+  https://www.youtube.com/watch?v=L04Ln97AwoY
 
-### 7. **Filtros e paginação nos repositórios**
-
-No `agentesRepository.js` e `casosRepository.js`, você implementou filtros, paginação e ordenação que são bem legais! Porém, os testes extras indicam que a filtragem por data de incorporação e ordenação podem estar com problemas finos.
-
-Certifique-se que:
-
-- Os filtros de data estejam sendo passados no formato correto (YYYY-MM-DD).
-- O parâmetro `sort` seja aplicado corretamente, inclusive para ordenação decrescente e crescente.
-- Que o parâmetro `page` e `pageSize` sejam números válidos e tratados para evitar erros.
-
----
-
-### 8. **Endpoint `/usuarios/me` não implementado**
-
-Você ainda não implementou o endpoint `/usuarios/me` para retornar os dados do usuário autenticado. Esse é um bônus, mas que ajuda muito na usabilidade da API.
-
-Você pode criar uma rota e controller assim:
-
-```js
-// authRoutes.js
-router.get('/usuarios/me', authMiddleware, authController.getMe);
-
-// authController.js
-async function getMe(req, res) {
-    try {
-        const usuario = await usuariosRepository.findById(req.user.id);
-        if (!usuario) {
-            return errorHandler.sendNotFoundError(res, "Usuário não encontrado.");
-        }
-        const { senha, ...userData } = usuario;
-        res.status(200).json(userData);
-    } catch (error) {
-        errorHandler.sendInternalServerError(res, error);
-    }
-}
-```
-
----
-
-## Recursos para você aprofundar e melhorar ainda mais seu código! 📚
-
-- Para entender melhor como proteger rotas com middleware e organizar rotas no Express, recomendo muito esse vídeo feito pelos meus criadores:  
-  https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s  
-  (Arquitetura MVC e organização de rotas)
-
-- Para entender profundamente autenticação, JWT e bcrypt, veja esse vídeo incrível:  
-  https://www.youtube.com/watch?v=Q4LQOfYwujk  
-  (Conceitos básicos e fundamentais de segurança)
-
-- Para entender o uso prático de JWT, recomendo esse:  
-  https://www.youtube.com/watch?v=keS0JWOypIU
-
-- Para melhorar suas queries e uso do Knex, especialmente com filtros e paginação, veja:  
+- Para entender melhor o **Knex.js e como fazer migrations, seeds e consultas**:  
+  https://www.youtube.com/watch?v=dXWy_aGCW1E  
+  e  
   https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s
 
-- Para configurar o banco com Docker e Knex, caso precise, este vídeo é ótimo:  
+- Sobre **Organização do projeto com MVC e boas práticas**:  
+  https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
+
+- Para configurar corretamente o **PostgreSQL com Docker e conectar ao Node.js**:  
   https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s
 
 ---
 
-## Resumo rápido para você focar:
+## Resumo Rápido para Focar 🚦
 
-- ✅ Ajustar a aplicação do middleware de autenticação para proteger as rotas corretamente (sem prefixo nos routers).
-- ✅ Verificar e corrigir o uso das rotas no `app.js` para que as rotas estejam disponíveis no caminho correto.
-- ✅ Ajustar a chave do token JWT no login para `acess_token` conforme esperado.
-- ✅ Implementar validação para evitar campos extras no registro de usuários.
-- ✅ Implementar o endpoint `/usuarios/me` para retornar os dados do usuário autenticado (bônus).
-- ✅ Revisar filtros e paginação nos repositórios para garantir funcionamento correto.
-- ✅ Opcional: criar seed para usuários para facilitar testes locais.
+- ✅ **Confirme que as migrations estão aplicadas na ordem correta e que o banco está atualizado.**  
+- ✅ **Verifique se o arquivo `app.js` está importando e usando as rotas (`agentesRoutes`, `casosRoutes`, `authRoutes`).**  
+- ✅ **Ajuste o nome do campo do token JWT para `access_token` para evitar confusão.**  
+- ✅ **Garanta que os payloads enviados para criação e atualização de agentes e casos estejam exatamente conforme o esperado (sem campos extras e com todos os obrigatórios).**  
+- ✅ **Revise os filtros e paginação para garantir que parâmetros inválidos não causem erros inesperados.**  
+- ✅ **Continue protegendo suas rotas com o middleware de autenticação e envie sempre o token JWT correto no header Authorization.**
 
 ---
 
-Domynic, você está no caminho certo e tem uma base muito boa! 💪 Corrigindo esses pontos, sua API vai ficar muito mais robusta, segura e alinhada com os padrões esperados. Continue assim, aprendendo e evoluindo! Se precisar, volte aqui para tirar dúvidas — estou sempre por aqui para ajudar! 😉
+## Finalizando 🌟
 
-Boa sorte e bora codar! 💻🔥
+DomynicBl, você está no caminho certo! Seu código mostra um ótimo domínio dos conceitos de autenticação, segurança e organização de projeto. Os erros que você está enfrentando são comuns e fazem parte do processo de aprendizado, especialmente quando lidamos com várias camadas (banco, backend, autenticação).
+
+Continue ajustando esses detalhes, aplicando as recomendações e estudando os recursos indicados. Tenho certeza que logo sua API estará 100% funcional e segura, pronta para uso profissional! 💪🚀
+
+Se precisar de ajuda para entender algum ponto específico, só chamar! Estou aqui para te ajudar a destravar esses desafios.
+
+Um abraço e bons códigos! 👨‍💻👩‍💻✨
+```
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
