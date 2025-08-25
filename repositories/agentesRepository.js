@@ -21,7 +21,7 @@ function findAll(filtros = {}) {
         query.where('cargo', 'ilike', `%${filtros.cargo}%`);
     }
 
-    // ADICIONADO: Filtros por intervalo de data de incorporação
+    // Filtros por intervalo de data de incorporação
     if (filtros.dataDeIncorporacao_gte) { // gte = Greater Than or Equal
         query.where('dataDeIncorporacao', '>=', filtros.dataDeIncorporacao_gte);
     }

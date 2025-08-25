@@ -114,7 +114,7 @@ async function getMe(req, res) {
         if (!usuario) {
             return errorHandler.sendNotFoundError(res, "Usuário autenticado não encontrado no banco de dados.");
         }
-        
+
         // Não retornar a senha na resposta
         const { senha, ...userData } = usuario;
         res.status(200).json(userData);
