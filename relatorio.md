@@ -1,265 +1,357 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 3 créditos restantes para usar o sistema de feedback AI.
+Você tem 2 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para DomynicBl:
 
 Nota final: **52.0/100**
 
-Olá, DomynicBl! 👋🚀
+```markdown
+# Feedback do Code Buddy para DomynicBl 🚔✨
 
-Primeiramente, parabéns pelo empenho e dedicação em construir essa API complexa e cheia de funcionalidades importantes! 🎉 Você conseguiu implementar bem a parte de usuários, com registro, login, logout e até exclusão — isso é ótimo e mostra que você domina a autenticação básica com bcrypt e JWT. Além disso, seu projeto está organizado em pastas coerentes, seguindo o padrão MVC (Model-View-Controller), o que é fundamental para manter o código escalável e fácil de manter. 👏
-
----
-
-## O que está indo muito bem 👍
-
-- **Autenticação de usuários:** Seu `authController.js` está bem estruturado, com validação forte da senha, hashing com bcrypt e geração correta do token JWT. A exclusão de usuários e o endpoint `/usuarios/me` também estão implementados corretamente.
-- **Middleware de autenticação:** O `authMiddleware.js` está fazendo a validação do token JWT e adicionando os dados do usuário no `req.user`, o que é exatamente o esperado para proteger rotas.
-- **Estrutura de pastas:** Você criou as pastas e arquivos novos (`authRoutes.js`, `authController.js`, `usuariosRepository.js`, `authMiddleware.js`) conforme o esperado. Isso mostra que você entendeu a organização do projeto.
-- **Documentação:** O arquivo `INSTRUCTIONS.md` está bem detalhado e explica claramente como usar a API e os fluxos de autenticação, o que é essencial para um projeto profissional.
-
-Além disso, você conseguiu passar os testes relacionados à criação, login e logout dos usuários, com mensagens de erro adequadas para senhas fracas e e-mails duplicados — muito bom! 👏
+Olá, Domynic! Que jornada incrível você está trilhando ao desenvolver essa API para o Departamento de Polícia! 👏👏 Antes de mergulharmos nos pontos que precisam de atenção, quero destacar que você fez um ótimo trabalho implementando a autenticação completa com JWT, hashing de senhas com bcrypt, e a estrutura do projeto está muito bem organizada. 🎉 Isso é fundamental para uma aplicação segura e escalável!
 
 ---
 
-## Pontos importantes para melhorar e destravar seu projeto 🚧
+## 🎉 Pontos Fortes e Conquistas Bônus
 
-Apesar dos acertos, percebi que a maior parte dos problemas está relacionada às funcionalidades de **agentes** e **casos**, que não passaram, e também alguns detalhes na filtragem e ordenação de agentes. Vamos destrinchar isso para você entender o que está acontecendo e como corrigir:
+- **Autenticação JWT funcionando:** Os testes de criação de usuário, login, logout, exclusão e validação do JWT passaram com sucesso. Isso mostra que você entendeu muito bem os conceitos de segurança, hashing e geração de tokens.
+- **Middleware de autenticação aplicado corretamente:** As rotas de agentes e casos estão protegidas, garantindo acesso apenas com token válido.
+- **Estrutura do projeto bem organizada:** Você seguiu a arquitetura MVC, com controllers, repositories, middlewares e rotas separadas, facilitando a manutenção.
+- **Documentação clara no INSTRUCTIONS.md:** O fluxo de autenticação e exemplos de uso do token JWT estão bem explicados.
+- **Implementação dos seeds para agentes, casos e usuários:** Isso ajuda a popular o banco e testar a aplicação rapidamente.
 
-### 1. **Rotas de agentes e casos estão protegidas, mas as operações CRUD não estão funcionando como esperado**
+---
 
-Você aplicou o middleware de autenticação corretamente nas rotas de agentes e casos:
+## 🚨 Análise dos Testes que Falharam e Possíveis Causas
 
-```js
-// agentesRoutes.js
-router.use(authMiddleware);
-```
+Você teve uma série de testes base importantes que falharam, todos relacionados às funcionalidades de agentes e casos. Vamos destrinchar as causas para que você possa corrigir e destravar essas funcionalidades essenciais:
 
-Isso está perfeito para proteger as rotas. Porém, as operações (criação, listagem, atualização, exclusão) dos agentes e casos estão falhando. Por quê?
+---
 
-### Causa raiz provável: **A tabela `usuarios` foi criada, mas a tabela `agentes` e `casos` não foram atualizadas corretamente ou estão com dados inconsistentes.**
+### 1. **AGENTS: Cria agentes corretamente com status code 201 e os dados inalterados do agente mais seu ID**
 
-- Você tem migrations para `agentes` e `casos` (`20250810133337_solution_migrations.js`) e para `usuarios` (`20250824222406_create_usuarios_table.js`). Mas a tabela `usuarios` não interfere diretamente em agentes e casos.
-- O problema pode estar no **populamento das tabelas** ou no **uso incorreto dos dados nas queries**.
-  
-### O que verificar no seu código:
+**Possível causa:**  
+Seu endpoint de criação de agentes (`POST /agentes`) está protegido por autenticação (correto), mas pode estar retornando um status ou formato de resposta diferente do esperado. Além disso, verifique se o campo `id` não está sendo enviado no corpo (isso você já valida, o que é ótimo).
 
-- Na migration de agentes, você criou a tabela com os campos certos, mas será que os seeds foram executados corretamente? Se a tabela `agentes` estiver vazia, as queries que buscam agentes por ID vão falhar.
-- No seed `casos.js`, você faz queries para buscar agentes pelo nome para associar casos a eles. Se algum agente não existir, a inserção dos casos falhará ou ficará inconsistente.
-- Além disso, veja que no seu `agentesRepository.js`, a função `findAll` implementa filtros, ordenação e paginação, mas não há garantia de que os filtros estão sendo passados corretamente do controller, nem que o formato está 100% correto.
-
-### Como corrigir:
-
-- **Confirme que as migrations e seeds foram executados sem erros.** Rode os comandos:
-
-```bash
-npx knex migrate:latest
-npx knex seed:run
-```
-
-- **Verifique se os agentes realmente existem no banco.** Você pode fazer um SELECT direto no banco ou usar o endpoint GET `/agentes` para listar.
-- **Garanta que o filtro de data e ordenação estejam funcionando.** No seu `agentesRepository.js`, a função `findAll` usa:
+**Dica:**  
+Confirme que o controller está retornando exatamente o objeto criado com status 201, e que o `id` é gerado pelo banco. Exemplo:
 
 ```js
-if (filtros.dataDeIncorporacao_gte) {
-    query.where('dataDeIncorporacao', '>=', filtros.dataDeIncorporacao_gte);
+const novoAgente = await agentesRepository.create(req.body);
+res.status(201).json(novoAgente);
+```
+
+---
+
+### 2. **AGENTS: Lista todos os agentes corretamente com status code 200 e todos os dados de cada agente listados corretamente**
+
+**Possível causa:**  
+Pode ser que o filtro, paginação ou ordenação estejam com alguma falha, ou que o middleware de autenticação esteja bloqueando a requisição sem token.
+
+**Dica:**  
+Verifique se o método `findAll` no `agentesRepository` está retornando os dados corretamente e se o controller está enviando o status 200 com o JSON de agentes.
+
+---
+
+### 3. **AGENTS: Busca agente por ID corretamente com status code 200 e todos os dados do agente listados dentro de um objeto JSON**
+
+**Possível causa:**  
+Pode haver um problema na validação do ID (por exemplo, o ID vindo como string e não convertido para número), ou o agente não está sendo encontrado corretamente.
+
+**Dica:**  
+Você já converte o ID para número e valida com `isNaN`. Certifique-se que a função `findById` do repository está funcionando e retornando o agente correto.
+
+---
+
+### 4. **AGENTS: Atualiza dados do agente com por completo (com PUT) corretamente com status code 200 e dados atualizados do agente listados num objeto JSON**
+
+**Possível causa:**  
+A validação dos dados pode estar bloqueando atualizações válidas, ou o retorno após update não está correto.
+
+**Dica:**  
+No controller `updateAgente`, você faz a validação e depois chama `update` no repository. Confira se o `update` retorna o agente atualizado e se você está enviando status 200 com o JSON correto.
+
+---
+
+### 5. **AGENTS: Atualiza dados do agente com por completo (com PATCH) corretamente com status code 200 e dados atualizados do agente listados num objeto JSON**
+
+**Possível causa:**  
+Similar ao PUT, mas com validação parcial. Pode haver falha na validação ou no retorno do agente atualizado.
+
+---
+
+### 6. **AGENTS: Deleta dados de agente corretamente com status code 204 e corpo vazio**
+
+**Possível causa:**  
+Verifique se o ID está sendo validado corretamente, se o agente existe, e se a exclusão está sendo feita sem erros. O código 204 deve retornar sem corpo.
+
+---
+
+### 7. **AGENTS: Recebe status code 400 ao tentar criar agente com payload em formato incorreto**
+
+**Possível causa:**  
+Sua validação está correta? O teste espera que você retorne 400 com mensagens claras para campos inválidos ou ausentes.
+
+---
+
+### 8. **AGENTS: Recebe status 404 ao tentar buscar um agente inexistente**
+
+**Possível causa:**  
+Você já faz essa verificação no controller, retornando 404 se não encontrar o agente. Confirme se o método `findById` está funcionando bem.
+
+---
+
+### 9. **AGENTS: Recebe status 404 ao tentar buscar um agente com ID em formato inválido**
+
+**Possível causa:**  
+Você retorna erro 400 para ID inválido (não numérico), mas o teste espera 404? Atenção aqui: IDs inválidos devem retornar 400 (bad request), IDs válidos mas não encontrados retornam 404. Ajuste para seguir esse padrão.
+
+---
+
+### 10. **AGENTS: Recebe status code 400 ao tentar atualizar agente por completo com método PUT e payload em formato incorreto**
+
+**Possível causa:**  
+Validação dos dados no PUT deve ser rigorosa. Certifique-se que seu validador `validarDadosAgente` está cobrindo todos os campos obrigatórios e formatos.
+
+---
+
+### 11. **AGENTS: Recebe status code 404 ao tentar atualizar agente por completo com método PUT de agente inexistente**
+
+**Possível causa:**  
+Você já verifica se o agente existe antes de atualizar. Mantenha essa lógica.
+
+---
+
+### 12. **AGENTS: Recebe status code 404 ao tentar atualizar agente por completo com método PUT de agente de ID em formato incorreto**
+
+**Possível causa:**  
+Mesma observação do item 9 sobre status 400 vs 404 para ID inválido.
+
+---
+
+### 13. **AGENTS: Recebe status code 400 ao tentar atualizar agente parcialmente com método PATCH e payload em formato incorreto**
+
+**Possível causa:**  
+Seu validador parcial `validarDadosParciaisAgente` pode precisar ser revisado para cobrir mais casos ou validar melhor os campos.
+
+---
+
+### 14. **AGENTS: Recebe status code 404 ao tentar atualizar agente parcialmente com método PATCH de agente inexistente**
+
+**Possível causa:**  
+Você já faz essa verificação, só manter.
+
+---
+
+### 15. **AGENTS: Recebe status code 404 ao tentar deletar agente inexistente**
+
+**Possível causa:**  
+Confirme se você verifica a existência antes de deletar.
+
+---
+
+### 16. **AGENTS: Recebe status code 404 ao tentar deletar agente com ID inválido**
+
+**Possível causa:**  
+Novamente, atenção ao status correto para ID inválido (normalmente 400).
+
+---
+
+### 17. **CASES: Cria casos corretamente com status code 201 e retorna dados inalterados do caso criado mais seu ID**
+
+**Possível causa:**  
+Verifique se o campo `agente_id` está sendo validado e se o agente existe antes de criar o caso. Confirme o retorno correto com status 201.
+
+---
+
+### 18. **CASES: Lista todos os casos corretamente com status code 200 e retorna lista com todos os dados de todos os casos**
+
+**Possível causa:**  
+Confirme se a paginação, filtros e ordenação estão corretos e se o retorno está correto.
+
+---
+
+### 19. **CASES: Busca caso por ID corretamente com status code 200 e retorna dados do caso**
+
+**Possível causa:**  
+Idem agentes, valide ID e existência.
+
+---
+
+### 20. **CASES: Atualiza dados de um caso com por completo (com PUT) corretamente com status code 200 e retorna dados atualizados**
+
+**Possível causa:**  
+Valide o payload e existência do caso e do agente associado.
+
+---
+
+### 21. **CASES: Atualiza dados de um caso parcialmente (com PATCH) corretamente com status code 200 e retorna dados atualizados**
+
+**Possível causa:**  
+Valide os dados parciais e existência do caso.
+
+---
+
+### 22. **CASES: Deleta dados de um caso corretamente com status code 204 e retorna corpo vazio**
+
+**Possível causa:**  
+Confirme validação de ID e existência.
+
+---
+
+### 23. **CASES: Recebe status code 400 ao tentar criar caso com payload em formato incorreto**
+
+**Possível causa:**  
+Validação dos campos obrigatórios e tipos.
+
+---
+
+### 24. **CASES: Recebe status code 404 ao tentar criar caso com ID de agente inexistente**
+
+**Possível causa:**  
+Você já verifica a existência do agente, ótimo!
+
+---
+
+### 25. **CASES: Recebe status code 404 ao tentar criar caso com ID de agente inválido**
+
+**Possível causa:**  
+Considere validar se `agente_id` é número válido antes da busca.
+
+---
+
+### 26. **CASES: Recebe status code 404 ao tentar buscar um caso por ID inválido**
+
+**Possível causa:**  
+Verifique se retorna 400 para ID inválido (não numérico).
+
+---
+
+### 27. **CASES: Recebe status code 404 ao tentar buscar um caso por ID inexistente**
+
+**Possível causa:**  
+Já implementado, mantenha.
+
+---
+
+### 28. **CASES: Recebe status code 400 ao tentar atualizar um caso por completo com método PUT com payload em formato incorreto**
+
+**Possível causa:**  
+Validação completa dos campos no PUT.
+
+---
+
+### 29. **CASES: Recebe status code 404 ao tentar atualizar um caso por completo com método PUT de um caso inexistente**
+
+**Possível causa:**  
+Verifique existência antes de atualizar.
+
+---
+
+### 30. **CASES: Recebe status code 404 ao tentar atualizar um caso por completo com método PUT de um caso com ID inválido**
+
+**Possível causa:**  
+Mesma observação sobre status 400 vs 404 para ID inválido.
+
+---
+
+### 31. **CASES: Recebe status code 404 ao tentar atualizar um caso parcialmente com método PATCH de um caso inexistente**
+
+**Possível causa:**  
+Verifique existência antes do patch.
+
+---
+
+### 32. **CASES: Recebe status code 404 ao tentar atualizar um caso parcialmente com método PATCH de um caso com ID inválido**
+
+**Possível causa:**  
+Mesma observação sobre status 400 vs 404 para ID inválido.
+
+---
+
+### 33. **CASES: Recebe status code 404 ao tentar deletar um caso inexistente**
+
+**Possível causa:**  
+Verifique existência antes de deletar.
+
+---
+
+### 34. **CASES: Recebe status code 404 ao tentar deletar um caso com ID inválido**
+
+**Possível causa:**  
+Mesma observação sobre status 400 vs 404 para ID inválido.
+
+---
+
+## ⚠️ Observação Importante sobre Status Codes (400 vs 404)
+
+Em vários testes, parece haver confusão entre quando retornar **400 Bad Request** e **404 Not Found** para IDs inválidos ou inexistentes:
+
+- IDs inválidos (exemplo: strings não numéricas) devem retornar **400 Bad Request**, pois o parâmetro está mal formatado.
+- IDs válidos mas que não existem no banco devem retornar **404 Not Found**.
+
+Ajuste suas validações para seguir essa regra, pois isso afeta muitos testes.
+
+---
+
+## Exemplos de Ajustes para Validação de ID
+
+```js
+const id = Number(req.params.id);
+if (isNaN(id)) {
+  // Retorne 400 para ID inválido
+  return errorHandler.sendInvalidParameterError(res, { id: "O ID deve ser um número válido." });
 }
-if (filtros.dataDeIncorporacao_lte) {
-    query.where('dataDeIncorporacao', '<=', filtros.dataDeIncorporacao_lte);
-}
-```
 
-Mas no controller `getAllAgentes`, você está recebendo os filtros do `req.query` e passando direto. Verifique se os nomes dos parâmetros usados nas requisições batem com esses (ex: `dataDeIncorporacao_gte` e `dataDeIncorporacao_lte`).
-
-- **Teste os endpoints manualmente com tokens válidos** para garantir que o middleware não bloqueie as requisições.
-
----
-
-### 2. **Validação dos dados para agentes e casos**
-
-Nos seus controllers (`agentesController.js` e `casosController.js`), as funções de validação estão bem elaboradas, mas algumas pequenas melhorias podem ajudar a evitar erros:
-
-- No `validarDadosCaso`, você valida se o campo `status` está entre `'aberto'` e `'solucionado'`, mas no patch você converte para `.toLowerCase()`. Isso pode causar inconsistência se o valor enviado estiver em maiúsculas. O ideal é sempre normalizar o dado antes da validação.
-
-- No `createCaso` e `updateCaso`, você verifica se o `agente_id` é válido e existe no banco, o que é ótimo. Só garanta que essa validação esteja sendo feita antes de tentar criar ou atualizar o caso.
-
----
-
-### 3. **Mensagem de erro e tratamento de erros**
-
-Vi que você tem um `errorHandler` para enviar erros personalizados, o que é ótimo para UX. Só tome cuidado para sempre usar esse padrão, principalmente:
-
-```js
-if (isNaN(id)) return errorHandler.sendInvalidParameterError(res, { id: "O ID deve ser um número válido." });
-```
-
-Isso ajuda a evitar erros internos e melhora a clareza para o usuário da API.
-
----
-
-### 4. **Filtros e ordenação dos agentes**
-
-Você implementou filtros complexos para agentes, incluindo paginação, ordenação e filtros por cargo e datas. Isso é excelente! Porém, os testes indicam que esses filtros não estão funcionando corretamente.
-
-Possíveis causas:
-
-- O frontend ou cliente pode estar enviando parâmetros com nomes diferentes (ex: `dataDeIncorporacao_gte` vs `dataDeIncorporacao__gte`).
-- O campo para ordenação pode não estar sendo passado corretamente no query string.
-- A função `findAll` do `agentesRepository.js` pode não estar tratando corretamente os valores recebidos.
-
-Sugestão para melhorar robustez:
-
-```js
-const page = Number.isInteger(+filtros.page) && +filtros.page > 0 ? +filtros.page : 1;
-const pageSize = Number.isInteger(+filtros.pageSize) && +filtros.pageSize > 0 ? +filtros.pageSize : 10;
-```
-
-Aqui, `Number.isInteger(+filtros.page)` pode falhar se `filtros.page` for uma string que representa número. Considere usar:
-
-```js
-const page = Number.isInteger(Number(filtros.page)) && Number(filtros.page) > 0 ? Number(filtros.page) : 1;
-```
-
-Além disso, teste se os filtros chegam corretamente no controller:
-
-```js
-console.log(req.query);
-```
-
-Assim você pode diagnosticar se o problema está na passagem dos parâmetros.
-
----
-
-### 5. **Tabela `usuarios` e variáveis de ambiente**
-
-Seu arquivo `.env` deve conter a variável `JWT_SECRET` para que o JWT funcione corretamente. Se essa variável não estiver configurada ou estiver vazia, a geração/verificação do token falhará.
-
-Exemplo:
-
-```
-JWT_SECRET="seuSegredoSuperSecreto"
-POSTGRES_USER=seu_usuario
-POSTGRES_PASSWORD=sua_senha
-POSTGRES_DB=seu_banco
-```
-
-Sem isso, o middleware de autenticação vai rejeitar todos os tokens. Certifique-se de que o arquivo `.env` está configurado e que o `dotenv` está sendo carregado logo no início da aplicação.
-
----
-
-### 6. **Sobre os testes bônus que passaram**
-
-Você implementou o endpoint `/usuarios/me` para retornar os dados do usuário autenticado, o que é um ótimo diferencial! Além disso, as mensagens de erro personalizadas para criação de usuário e JWT com expiração correta mostram que você está atento às boas práticas de segurança. Parabéns por isso! 🌟
-
----
-
-## Exemplos práticos para você ajustar
-
-### 1. Confirme que o middleware está protegendo as rotas, mas que o token está chegando correto:
-
-```js
-// authMiddleware.js
-function authMiddleware(req, res, next) {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ message: 'Token não fornecido ou em formato inválido.' });
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; 
-        next();
-    } catch (error) {
-        if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({ message: 'Token expirado.' });
-        }
-        return res.status(401).json({ message: 'Token inválido.' });
-    }
-}
-```
-
-### 2. Validação e criação de agente — garanta que o campo `id` não seja enviado no corpo:
-
-```js
-async function createAgente(req, res) {
-    try {
-        if ('id' in req.body) {
-            return errorHandler.sendInvalidParameterError(res, { id: "O campo 'id' não deve ser enviado ao criar um agente." });
-        }
-
-        const errors = validarDadosAgente(req.body);
-        if (Object.keys(errors).length > 0) return errorHandler.sendInvalidParameterError(res, errors);
-
-        const novoAgente = await agentesRepository.create(req.body);
-        res.status(201).json(novoAgente);
-    } catch (error) {
-        errorHandler.sendInternalServerError(res, error);
-    }
-}
-```
-
-### 3. Exemplo de filtro para data de incorporação e ordenação:
-
-```js
-// agentesRepository.js - findAll
-if (filtros.dataDeIncorporacao_gte) {
-    query.where('dataDeIncorporacao', '>=', filtros.dataDeIncorporacao_gte);
-}
-if (filtros.dataDeIncorporacao_lte) {
-    query.where('dataDeIncorporacao', '<=', filtros.dataDeIncorporacao_lte);
-}
-
-if (filtros.sort) {
-    const sortField = filtros.sort.startsWith('-') ? filtros.sort.substring(1) : filtros.sort;
-    const sortOrder = filtros.sort.startsWith('-') ? 'desc' : 'asc';
-    const allowedSortFields = ['id', 'nome', 'dataDeIncorporacao', 'cargo'];
-
-    if (allowedSortFields.includes(sortField)) {
-        query.orderBy(sortField, sortOrder);
-    }
+const entity = await repository.findById(id);
+if (!entity) {
+  // Retorne 404 para entidade não encontrada
+  return errorHandler.sendNotFoundError(res, "Entidade não encontrada.");
 }
 ```
 
 ---
 
-## Recursos para você se aprofundar e corrigir esses pontos
+## 📚 Recursos Recomendados para Aprimorar
 
-- Para entender melhor como configurar o banco e usar migrations/seeds com Knex e Docker, recomendo este vídeo:  
-  ▶️ https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s
+- **JWT e Autenticação:**  
+  Esse vídeo, feito pelos meus criadores, fala muito bem sobre autenticação com JWT e boas práticas de segurança:  
+  https://www.youtube.com/watch?v=Q4LQOfYwujk
 
-- Para aprimorar a organização do seu projeto e entender melhor a arquitetura MVC, veja:  
-  ▶️ https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
+- **Uso prático de JWT e bcrypt:**  
+  Aprenda como usar JWT e bcrypt juntos para proteger rotas e usuários:  
+  https://www.youtube.com/watch?v=L04Ln97AwoY
 
-- Para fortalecer seus conhecimentos em autenticação e segurança com JWT e bcrypt, este vídeo é essencial (feito pelos meus criadores):  
-  ▶️ https://www.youtube.com/watch?v=Q4LQOfYwujk
+- **Knex Query Builder:**  
+  Para melhorar suas queries e entender melhor filtros, paginação e ordenação:  
+  https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s
 
-- Para entender o uso prático de JWT e como validar tokens corretamente, assista:  
-  ▶️ https://www.youtube.com/watch?v=keS0JWOypIU
-
----
-
-## Resumo rápido para você focar:
-
-- [ ] Verifique se as migrations e seeds para `agentes` e `casos` foram aplicadas e executadas corretamente para garantir dados no banco.
-- [ ] Confirme que os filtros e ordenação estão recebendo e tratando corretamente os parâmetros no controller e repository.
-- [ ] Assegure que o middleware de autenticação está funcionando e a variável `JWT_SECRET` está configurada no `.env`.
-- [ ] Teste manualmente as rotas protegidas com token válido para garantir acesso.
-- [ ] Ajuste as validações para normalizar dados (ex: status de casos) antes de validar.
-- [ ] Continue usando o padrão de tratamento de erros personalizado para manter a API amigável e robusta.
-- [ ] Explore os vídeos recomendados para fortalecer sua base em banco, arquitetura e segurança.
+- **Arquitetura MVC e boas práticas:**  
+  Organize seu projeto para ser escalável e fácil de manter:  
+  https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
 
 ---
 
-Domynic, você está no caminho certo! Com esses ajustes, sua API vai ficar muito mais robusta, segura e profissional. Continue praticando, testando e aprimorando. Se precisar, volte a revisar o passo a passo das migrations, seeds e autenticação. Você vai conseguir! 💪🚀
+## ✅ Resumo dos Principais Pontos para Focar
 
-Fico aqui torcendo pelo seu sucesso e disponível para ajudar sempre que precisar! 😉
+- [ ] **Ajustar status codes para validação de IDs:** 400 para inválidos, 404 para não encontrados.
+- [ ] **Revisar validações de payloads para agentes e casos:** garantir que campos obrigatórios, tipos e formatos estejam corretos.
+- [ ] **Garantir retorno correto de status e corpo em todos os endpoints:** 201 para criação, 200 para sucesso, 204 para deleção sem corpo.
+- [ ] **Verificar se os filtros, paginação e ordenação estão funcionando corretamente no repository.**
+- [ ] **Testar as rotas protegidas com e sem token para garantir que o middleware funciona.**
+- [ ] **Revisar mensagens de erro para que sejam claras e consistentes, usando o `errorHandler`.**
 
-Um abraço forte,  
-Seu Code Buddy 🤖💙
+---
+
+Domynic, você está no caminho certo! 💪 Muitas das bases de autenticação e segurança estão bem feitas, e com esses ajustes nos detalhes de validação e status codes, sua API vai ficar redondinha para produção.
+
+Continue firme que a prática e a atenção aos detalhes vão te levar longe! 🚀 Se precisar, volte aos vídeos recomendados para reforçar os conceitos e boas práticas.
+
+Fique à vontade para perguntar se quiser ajuda para ajustar algum trecho específico! Estou aqui para ajudar você a evoluir cada vez mais. 😉
+
+Abraços e bons códigos! 👊👨‍💻👩‍💻
+```
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
